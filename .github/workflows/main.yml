@@ -9,15 +9,10 @@ jobs:
   build_skim:
     needs: greeting
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.allow_failure }}
     container: rootproject/root:${{ matrix.version }}-conda
     strategy:
       matrix:
-        version: [6.22.00]
-        allow_failure: [false]
-        include:
-          - version: 6.22.06
-            allow_failure: true
+        version: [6.22.00, 6.22.06]
     steps:
       - name: checkout repository
         uses: actions/checkout@v2
@@ -27,3 +22,25 @@ jobs:
           COMPILER=$(root-config --cxx)
           FLAGS=$(root-config --cflags --libs)
           $COMPILER -g -O3 -Wall -Wextra -Wpedantic -o skim skim.cxx $FLAGS
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: skim${{ matrix.version }}
+          path: skim
+
+  skim:
+    needs: build_skim
+    runs-on: ubuntu-latest
+    container: rootproject/root:6.22.00-conda
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v2
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: skim6.22.00
+
+      - name: skim
+        run: |
+          chmod +x ./skim
+          ./skim
